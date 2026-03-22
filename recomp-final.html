@@ -494,6 +494,10 @@ async function saveDay() {
   const wt = parseFloat(document.getElementById('fWt').value) || null;
   const notes = document.getElementById('fNotes').value.trim();
   if (!wt && !selWorkout && selEnergy === null && selDrinks === null && !notes) { toast('Fill in at least one field'); return; }
+  
+  // Re-fetch latest from sheet before merging
+  await loadAllData();
+  
   const d = getTodayData();
   if (wt) d.weight = wt;
   if (selWorkout) d.workout = selWorkout;
