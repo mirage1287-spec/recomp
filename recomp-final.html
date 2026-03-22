@@ -494,18 +494,27 @@ async function saveDay() {
   const wt = parseFloat(document.getElementById('fWt').value) || null;
   const notes = document.getElementById('fNotes').value.trim();
   if (!wt && !selWorkout && selEnergy === null && selDrinks === null && !notes) { toast('Fill in at least one field'); return; }
-  
-  // Re-fetch latest from sheet before merging
+
+  // Load latest from sheet first
   await loadAllData();
   
-  const d = getTodayData();
-  if (wt) d.weight = wt;
-  if (selWorkout) d.workout = selWorkout;
-  if (selEnergy !== null) d.energy = selEnergy;
-  if (selDrinks !== null) d.drinks = selDrinks;
-  if (notes) d.notes = notes;
-  allLogs[todayKey()] = d;
-  renderSnap(d);
+  // Build update object with ONLY changed fields
+  const update = { action: 'save', date: todayKey() };
+  const existing = getTodayData();
+
+  update.weight = wt || existing.weight || '';
+  update.workout = selWorkout || existing.workout || '';
+  update.energy = selEnergy !== null ? selEnergy : (existing.energy || '');
+  update.drinks = selDrinks !== null ? selDrinks : (existing.drinks !== null && existing.drinks !== undefined ? existing.drinks : '');
+  update.notes = notes || existing.notes || '';
+  update.protein = existing.protein || 0;
+  update.calories = existing.calories || 0;
+  update.foods = existing.foods || [];
+
+  // Update local cache
+  allLogs[todayKey()] = { ...existing, ...update };
+  
+  renderSnap(allLogs[todayKey()]);
   document.getElementById('fWt').value = '';
   document.getElementById('fNotes').value = '';
   selWorkout = null; selEnergy = null; selDrinks = null;
@@ -514,7 +523,7 @@ async function saveDay() {
   document.querySelectorAll('#dBtns .sq-btn').forEach(b => b.className = 'sq-btn');
   document.getElementById('saveHint').textContent = 'Saved ' + new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
   toast('Saved ✓');
-  await saveToSheet(d);
+  await saveToSheet(update);
 }
 
 function renderSnap(d) {
