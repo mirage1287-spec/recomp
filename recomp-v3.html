@@ -686,10 +686,8 @@ async function qadd(desc, protein, calories) {
   d.calories = (d.calories||0) + calories;
   allLogs[todayKey()] = d;
   updateHome(); renderFoodLog();
-  await saveToSheet(d);
-  toast('+' + protein + 'g logged');
+await saveToSheet({...d, action:'save', date:todayKey()});  toast('+' + protein + 'g logged');
 }
-
 async function manualAdd() {
   const desc = document.getElementById('manualDesc').value.trim();
   const protein = parseInt(document.getElementById('manualProtein').value) || 0;
