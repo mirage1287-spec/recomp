@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>RECOMP // JC</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080808;
+  --s1: #101010;
+  --s2: #181818;
+  --s3: #222;
+  --border: #2c2c2c;
+  --accent: #c8ff00;
+  --blue: #4af0ff;
+  --orange: #ff7c3a;
+  --red: #ff4444;
+  --purple: #b48cff;
+  --text: #f2f2f2;
+  --muted: #5a5a5a;
+  --subtle: #303030;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overscroll-behavior: none; }
+body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; min-height: 100vh; padding-bottom: 100px; }
+
+.hdr { position: sticky; top: 0; z-index: 50; background: var(--bg); border-bottom: 1px solid var(--border); padding: 14px 18px 12px; display: flex; justify-content: space-between; align-items: center; }
+.hdr-title { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; color: var(--accent); }
+.hdr-sub { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 1px; margin-top: 2px; }
+.hdr-right { text-align: right; }
+.hdr-date { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); }
+.sync-status { font-family: 'JetBrains Mono', monospace; font-size: 10px; margin-top: 2px; }
+.sync-ok { color: var(--accent); }
+.sync-err { color: var(--red); }
+.sync-loading { color: var(--muted); }
+
+.ring-wrap { display: flex; flex-direction: column; align-items: center; padding: 22px 18px 6px; gap: 4px; }
+.ring-container { position: relative; width: 160px; height: 160px; }
+.ring-svg { transform: rotate(-90deg); }
+.ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.ring-num { font-size: 42px; font-weight: 800; line-height: 1; }
+.ring-unit { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); margin-top: 2px; }
+.ring-target { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 1px; }
+.ring-status { font-size: 13px; font-weight: 600; margin-top: 4px; }
+
+.tabs { display: flex; border-bottom: 1px solid var(--border); padding: 0 18px; }
+.tab { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; padding: 10px 14px 8px; cursor: pointer; color: var(--muted); border: none; background: none; border-bottom: 2px solid transparent; transition: all 0.15s; }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.main { padding: 16px 18px; max-width: 500px; margin: 0 auto; }
+.view { display: none; }
+.view.active { display: block; }
+
+.slabel { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin: 18px 0 9px; }
+.slabel:first-child { margin-top: 2px; }
+
+.ai-box { background: var(--s1); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 8px; }
+.ai-hdr { display: flex; align-items: center; gap: 8px; padding: 12px 14px 0; }
+.ai-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.3} }
+.ai-lbl { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1px; color: var(--accent); }
+.ai-input-area { display: flex; align-items: flex-end; gap: 10px; padding: 10px 14px 12px; }
+textarea.ai-input { flex: 1; background: transparent; border: none; outline: none; color: var(--text); font-family: 'Syne', sans-serif; font-size: 15px; resize: none; line-height: 1.4; min-height: 44px; max-height: 120px; }
+textarea.ai-input::placeholder { color: var(--subtle); }
+.send-btn { width: 40px; height: 40px; border-radius: 10px; border: none; background: var(--accent); color: #000; font-size: 16px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0; }
+.send-btn:disabled { background: var(--s3); color: var(--muted); cursor: not-allowed; }
+
+.ai-resp { margin: 10px 0 0; background: var(--s2); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+.ai-resp-hdr { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px 8px; border-bottom: 1px solid var(--border); }
+.ai-resp-lbl { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; }
+.ai-resp-protein { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; color: var(--accent); }
+.ai-resp-body { padding: 10px 14px 12px; font-size: 13px; line-height: 1.5; color: var(--text); }
+.add-btn { display: flex; align-items: center; justify-content: center; width: calc(100% - 28px); margin: 0 14px 12px; padding: 10px; border-radius: 10px; background: var(--accent); color: #000; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; border: none; cursor: pointer; }
+
+.food-entry { display: flex; justify-content: space-between; align-items: flex-start; padding: 12px 14px; background: var(--s1); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 8px; }
+.food-desc { font-size: 13px; color: var(--text); line-height: 1.4; margin-bottom: 2px; }
+.food-meta { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); }
+.food-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.food-protein { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 500; color: var(--accent); }
+.food-cal { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); }
+.del-btn { background: none; border: none; color: var(--subtle); cursor: pointer; font-size: 16px; padding: 4px; transition: color 0.15s; }
+.del-btn:hover { color: var(--red); }
+
+.field-card { background: var(--s1); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 8px; }
+.field-row { display: flex; align-items: center; justify-content: space-between; padding: 13px 14px; border-bottom: 1px solid var(--border); }
+.field-row:last-child { border-bottom: none; }
+.field-row.col { flex-direction: column; align-items: flex-start; gap: 10px; }
+.field-lbl { font-size: 14px; font-weight: 600; }
+.field-sub { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); margin-top: 2px; }
+.num-inp { background: var(--s2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 500; padding: 7px 11px; width: 76px; text-align: center; outline: none; -webkit-appearance: none; transition: border-color 0.15s; }
+.num-inp:focus { border-color: var(--accent); }
+.unit-lbl { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); }
+
+.pill-row { display: flex; gap: 7px; flex-wrap: wrap; }
+.wpill { padding: 7px 13px; border-radius: 20px; border: 1px solid var(--border); background: var(--s2); color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.12s; }
+.wpill.sel-tonal { background: var(--accent); border-color: var(--accent); color: #000; }
+.wpill.sel-peloton { background: var(--blue); border-color: var(--blue); color: #000; }
+.wpill.sel-both { background: var(--orange); border-color: var(--orange); color: #fff; }
+.wpill.sel-rest { background: var(--s3); border-color: var(--subtle); color: var(--text); }
+
+.btn-row { display: flex; gap: 7px; }
+.sq-btn { min-width: 40px; height: 36px; border-radius: 8px; border: 1px solid var(--border); background: var(--s2); color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 13px; cursor: pointer; transition: all 0.12s; padding: 0 10px; display: flex; align-items: center; justify-content: center; }
+.sq-btn.sel-e { background: var(--orange); border-color: var(--orange); color: #fff; font-weight: 700; }
+.sq-btn.sel-d { background: var(--purple); border-color: var(--purple); color: #fff; font-weight: 700; }
+.sq-btn.sel-d0 { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 700; }
+
+textarea.notes-ta { width: 100%; background: var(--s1); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-family: 'Syne', sans-serif; font-size: 14px; padding: 12px; resize: none; outline: none; height: 72px; transition: border-color 0.15s; }
+textarea.notes-ta:focus { border-color: var(--accent); }
+
+.save-btn { width: 100%; padding: 15px; border: none; border-radius: 12px; background: var(--accent); color: #000; font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 800; letter-spacing: 2px; cursor: pointer; margin-top: 8px; transition: all 0.12s; }
+.save-btn:active { transform: scale(0.98); }
+.save-hint { text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); margin-top: 6px; min-height: 14px; }
+
+.snap-box { background: var(--s1); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); line-height: 1.9; }
+
+.sum-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.sum-card { background: var(--s1); border: 1px solid var(--border); border-radius: 10px; padding: 13px; }
+.sc-lbl { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; }
+.sc-val { font-size: 26px; font-weight: 800; line-height: 1; }
+.sc-unit { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--muted); margin-top: 3px; }
+
+.weight-chart { background: var(--s1); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+.chart-title { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+.chart-svg { width: 100%; height: 80px; }
+
+.hist-entry { background: var(--s1); border: 1px solid var(--border); border-radius: 12px; padding: 13px 14px; margin-bottom: 8px; }
+.hist-date { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); margin-bottom: 8px; }
+.hist-stats { display: flex; gap: 14px; flex-wrap: wrap; }
+.hist-stat { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); }
+.hist-stat .hv { font-weight: 600; }
+.hist-notes { font-size: 12px; color: var(--muted); margin-top: 6px; font-style: italic; }
+
+.weekly-summary { background: var(--s2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text); line-height: 2; white-space: pre-wrap; }
+.copy-btn { width: 100%; padding: 12px; border: 1px solid var(--accent); border-radius: 10px; background: transparent; color: var(--accent); font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer; transition: all 0.15s; }
+.copy-btn:hover { background: var(--accent); color: #000; }
+
+.qrow { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+.qpill { padding: 6px 11px; border-radius: 20px; border: 1px solid var(--border); background: var(--s2); color: var(--muted); font-size: 12px; cursor: pointer; transition: all 0.12s; }
+.qpill:hover { color: var(--text); border-color: var(--subtle); }
+
+.dots { display: inline-flex; gap: 4px; align-items: center; padding: 14px; }
+.dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: dot 1.2s infinite; }
+.dots span:nth-child(2) { animation-delay: 0.2s; }
+.dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dot { 0%,80%,100%{opacity:0.2}40%{opacity:1} }
+
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(30px); background: var(--accent); color: #000; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 500; padding: 10px 22px; border-radius: 100px; transition: all 0.3s cubic-bezier(0.34,1.4,0.64,1); opacity: 0; pointer-events: none; z-index: 200; white-space: nowrap; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.empty { text-align: center; padding: 40px 24px; color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 2; }
+.streak { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent); margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <div class="hdr-title">RECOMP</div>
+    <div class="hdr-sub">JC // 179 LBS</div>
+  </div>
+  <div class="hdr-right">
+    <div class="hdr-date" id="hdrDate"></div>
+    <div class="sync-status sync-loading" id="syncStatus">connecting...</div>
+  </div>
+</div>
+
+<div class="ring-wrap">
+  <div class="ring-container">
+    <svg class="ring-svg" width="160" height="160" viewBox="0 0 160 160">
+      <circle fill="none" stroke="#222" stroke-width="12" cx="80" cy="80" r="70"/>
+      <circle id="ringArc" fill="none" stroke="#c8ff00" stroke-width="12" stroke-linecap="round" cx="80" cy="80" r="70" stroke-dasharray="440" stroke-dashoffset="440" style="transition:stroke-dashoffset 0.8s cubic-bezier(0.34,1.2,0.64,1),stroke 0.4s"/>
+    </svg>
+    <div class="ring-center">
+      <div class="ring-num" id="ringNum">0</div>
+      <div class="ring-unit">grams</div>
+    </div>
+  </div>
+  <div class="ring-target">TARGET: 175–180g protein</div>
+  <div class="ring-status" id="ringStatus"></div>
+  <div class="streak" id="streakDisplay"></div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="sw('protein',this)">Protein</button>
+  <button class="tab" onclick="sw('daily',this)">Daily Log</button>
+  <button class="tab" onclick="sw('history',this)">History</button>
+</div>
+
+<div class="main">
+
+  <!-- PROTEIN TAB -->
+  <div class="view active" id="view-protein">
+    <div class="slabel">Log a meal or shake</div>
+    <div class="ai-box">
+      <div class="ai-hdr"><div class="ai-dot"></div><div class="ai-lbl">AI Protein Estimator</div></div>
+      <div class="ai-input-area">
+        <textarea class="ai-input" id="foodInput" placeholder="Describe what you're eating..." rows="2"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="analyzeFood()">→</button>
+      </div>
+    </div>
+    <div id="aiWrap"></div>
+
+    <div class="slabel">Quick Add</div>
+    <div class="qrow">
+      <div class="qpill" onclick="qadd('Protein shake (1 scoop)',27,120)">🥤 Shake +27g</div>
+      <div class="qpill" onclick="qadd('Chicken breast 6oz',50,185)">🍗 Chicken +50g</div>
+      <div class="qpill" onclick="qadd('3 eggs',18,210)">🥚 Eggs +18g</div>
+      <div class="qpill" onclick="qadd('Greek yogurt 1 cup',20,130)">🥛 Yogurt +20g</div>
+      <div class="qpill" onclick="qadd('Ground beef 6oz',40,340)">🥩 Beef +40g</div>
+      <div class="qpill" onclick="qadd('Cottage cheese 1 cup',25,200)">Cottage cheese +25g</div>
+      <div class="qpill" onclick="qadd('Salmon 6oz',40,240)">🐟 Salmon +40g</div>
+      <div class="qpill" onclick="qadd('Deli turkey 4 slices',20,90)">🦃 Turkey +20g</div>
+    </div>
+
+    <div id="todayFoodLabel"></div>
+    <div id="foodLog"></div>
+  </div>
+
+  <!-- DAILY LOG TAB -->
+  <div class="view" id="view-daily">
+    <div id="snapWrap"></div>
+    <div class="slabel">Update Today</div>
+    <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:14px;line-height:1.8">Each save merges with what's already logged today — fill in only what you know right now.</p>
+
+    <div class="field-card">
+      <div class="field-row">
+        <div><div class="field-lbl">Weight</div><div class="field-sub">Morning, post-bathroom</div></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="number" class="num-inp" id="fWt" placeholder="179" step="0.1">
+          <span class="unit-lbl">lbs</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="field-card">
+      <div class="field-row col">
+        <div class="field-lbl">Workout Today</div>
+        <div class="pill-row" id="wPills">
+          <div class="wpill" onclick="selW('Tonal',this)">Tonal</div>
+          <div class="wpill" onclick="selW('Peloton',this)">Peloton</div>
+          <div class="wpill" onclick="selW('Both',this)">Both</div>
+          <div class="wpill" onclick="selW('Rest',this)">Rest</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="field-card">
+      <div class="field-row col">
+        <div><div class="field-lbl">Energy Level</div><div class="field-sub">1 = crashed · 5 = dialed in</div></div>
+        <div class="btn-row" id="eBtns">
+          <button class="sq-btn" onclick="selE(1,this)">1</button>
+          <button class="sq-btn" onclick="selE(2,this)">2</button>
+          <button class="sq-btn" onclick="selE(3,this)">3</button>
+          <button class="sq-btn" onclick="selE(4,this)">4</button>
+          <button class="sq-btn" onclick="selE(5,this)">5</button>
+        </div>
+      </div>
+      <div class="field-row col">
+        <div><div class="field-lbl">Drinks Last Night</div><div class="field-sub">Standard drinks — correlates with Whoop HRV</div></div>
+        <div class="btn-row" id="dBtns">
+          <button class="sq-btn" onclick="selD(0,this)">0</button>
+          <button class="sq-btn" onclick="selD(1,this)">1</button>
+          <button class="sq-btn" onclick="selD(2,this)">2</button>
+          <button class="sq-btn" onclick="selD(3,this)">3+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="slabel">Notes <span style="color:var(--subtle);font-size:9px">(optional)</span></div>
+    <textarea class="notes-ta" id="fNotes" placeholder="Sleep feel, stress, anything worth noting..."></textarea>
+
+    <button class="save-btn" onclick="saveDay()">SAVE</button>
+    <div class="save-hint" id="saveHint"></div>
+  </div>
+
+  <!-- HISTORY TAB -->
+  <div class="view" id="view-history">
+    <div class="slabel">7-Day Averages</div>
+    <div class="sum-grid" id="sumGrid"></div>
+
+    <div class="slabel">Weight Trend (30 days)</div>
+    <div class="weight-chart">
+      <svg class="chart-svg" id="weightChart" viewBox="0 0 400 80" preserveAspectRatio="none"></svg>
+    </div>
+
+    <div class="slabel">Weekly Summary for Check-In</div>
+    <div class="weekly-summary" id="weeklySummary">Loading...</div>
+    <button class="copy-btn" onclick="copySummary()">↗ Copy Summary — Paste into Chat</button>
+
+    <div class="slabel" style="margin-top:20px">Log</div>
+    <div id="histList"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'https://script.google.com/macros/s/AKfycbySymiDloFp1-oCOXWKJvvO4TT_b_htBvyKvuAkMX-CBMUJ7K1jnAiHuhhzDHpYqK1F2w/exec';
+const PROTEIN_TARGET = 178;
+
+let allLogs = {};
+let selWorkout = null, selEnergy = null, selDrinks = null;
+
+const now = new Date();
+document.getElementById('hdrDate').textContent =
+  now.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+
+function todayKey() { return now.toISOString().split('T')[0]; }
+
+function setSyncStatus(state, msg) {
+  const el = document.getElementById('syncStatus');
+  el.textContent = msg;
+  el.className = 'sync-status sync-' + state;
+}
+
+async function loadAllData() {
+  setSyncStatus('loading', 'syncing...');
+  try {
+    const resp = await fetch(API + '?action=load&t=' + Date.now());
+    const data = await resp.json();
+    allLogs = data || {};
+    setSyncStatus('ok', '● synced');
+    return true;
+  } catch(e) {
+    setSyncStatus('err', '● offline');
+    return false;
+  }
+}
+
+async function saveToSheet(dayData) {
+  setSyncStatus('loading', 'saving...');
+  try {
+    const resp = await fetch(API, {
+      method: 'POST',
+      headers: {'Content-Type': 'text/plain'},
+      body: JSON.stringify({action: 'save', ...dayData})
+    });
+    await resp.json();
+    setSyncStatus('ok', '● saved');
+    return true;
+  } catch(e) {
+    setSyncStatus('err', '● save failed');
+    return false;
+  }
+}
+
+function getTodayData() {
+  return allLogs[todayKey()] || {protein:0, calories:0, foods:[], weight:null, workout:null, energy:null, drinks:null, notes:'', date: todayKey()};
+}
+
+function updateRing(protein) {
+  protein = protein || 0;
+  const pct = Math.min(protein / PROTEIN_TARGET, 1);
+  const circ = 2 * Math.PI * 70;
+  document.getElementById('ringArc').style.strokeDashoffset = Math.round(circ * (1 - pct));
+  document.getElementById('ringArc').style.stroke = pct >= 1 ? '#c8ff00' : pct >= 0.7 ? '#4af0ff' : pct >= 0.4 ? '#ff7c3a' : '#ff4444';
+  document.getElementById('ringNum').textContent = Math.round(protein);
+  const st = document.getElementById('ringStatus');
+  const rem = Math.max(0, PROTEIN_TARGET - protein);
+  st.textContent = protein >= PROTEIN_TARGET ? '✓ TARGET HIT' : protein > 0 ? Math.round(rem) + 'g to go' : '';
+  st.style.color = protein >= PROTEIN_TARGET ? 'var(--accent)' : 'var(--muted)';
+
+  // Streak
+  const keys = Object.keys(allLogs).sort().reverse();
+  let streak = 0;
+  for (const k of keys) {
+    if ((allLogs[k].protein || 0) >= PROTEIN_TARGET) streak++;
+    else break;
+  }
+  const streakEl = document.getElementById('streakDisplay');
+  streakEl.textContent = streak >= 2 ? '🔥 ' + streak + ' day protein streak' : '';
+}
+
+function renderFoodLog() {
+  const d = getTodayData();
+  const log = document.getElementById('foodLog');
+  const lbl = document.getElementById('todayFoodLabel');
+  if (!d.foods || !d.foods.length) { log.innerHTML = ''; lbl.innerHTML = ''; return; }
+  lbl.innerHTML = '<div class="slabel">Today\'s Log</div>';
+  log.innerHTML = d.foods.map((f, i) => `
+    <div class="food-entry">
+      <div>
+        <div class="food-desc">${f.desc}</div>
+        <div class="food-meta">${f.time}${f.calories ? ' · ~' + f.calories + ' kcal' : ''}</div>
+      </div>
+      <div class="food-right">
+        <div>
+          <div class="food-protein">${f.protein}g</div>
+          ${f.calories ? `<div class="food-cal">${f.calories} kcal</div>` : ''}
+        </div>
+        <button class="del-btn" onclick="deleteFood(${i})">×</button>
+      </div>
+    </div>`).join('');
+}
+
+async function deleteFood(i) {
+  const d = getTodayData();
+  const removed = d.foods[i];
+  d.protein -= removed.protein;
+  d.calories = (d.calories || 0) - (removed.calories || 0);
+  d.foods.splice(i, 1);
+  allLogs[todayKey()] = d;
+  updateRing(d.protein);
+  renderFoodLog();
+  await saveToSheet(d);
+}
+
+async function qadd(desc, protein, calories) {
+  const d = getTodayData();
+  const t = new Date().toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'});
+  d.foods = d.foods || [];
+  d.foods.push({desc, protein, calories, time: t});
+  d.protein = (d.protein || 0) + protein;
+  d.calories = (d.calories || 0) + calories;
+  allLogs[todayKey()] = d;
+  updateRing(d.protein);
+  renderFoodLog();
+  await saveToSheet(d);
+  toast('+' + protein + 'g · ' + calories + ' kcal');
+}
+
+async function analyzeFood() {
+  const input = document.getElementById('foodInput').value.trim();
+  if (!input) return;
+  const btn = document.getElementById('sendBtn');
+  btn.disabled = true;
+  const wrap = document.getElementById('aiWrap');
+  wrap.innerHTML = '<div class="ai-resp"><div class="dots"><span></span><span></span><span></span></div></div>';
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514', max_tokens: 250,
+        messages: [{role: 'user', content: `Sports nutrition AI. User: 38M 179lbs, strength training 4-5x/week, recomposition, protein target 175-180g/day.
+
+Food: "${input}"
+
+Reply ONLY with valid JSON no markdown:
+{"protein":<integer>,"calories":<integer>,"range":"<low>-<high>g protein","description":"<1-line clean description>","note":"<1 short actionable sentence>"}`}]
+      })
+    });
+    const data = await resp.json();
+    const raw = data.content?.find(c => c.type === 'text')?.text || '';
+    const p = JSON.parse(raw.replace(/```json|```/g, '').trim());
+    wrap.innerHTML = `
+      <div class="ai-resp">
+        <div class="ai-resp-hdr">
+          <span class="ai-resp-lbl">AI Estimate</span>
+          <span class="ai-resp-protein">~${p.protein}g · ~${p.calories} kcal</span>
+        </div>
+        <div class="ai-resp-body">${p.description}<br><span style="color:var(--muted)">${p.note}</span></div>
+        <button class="add-btn" onclick="confirmAdd('${input.replace(/'/g,"\\'")}',${p.protein},${p.calories})">+ Add ${p.protein}g protein to today</button>
+      </div>`;
+  } catch(e) {
+    wrap.innerHTML = '<div class="ai-resp"><div class="ai-resp-body" style="color:var(--red)">Analysis failed — try again.</div></div>';
+  }
+  btn.disabled = false;
+}
+
+async function confirmAdd(desc, protein, calories) {
+  const d = getTodayData();
+  const t = new Date().toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'});
+  d.foods = d.foods || [];
+  d.foods.push({desc, protein, calories, time: t});
+  d.protein = (d.protein || 0) + protein;
+  d.calories = (d.calories || 0) + calories;
+  allLogs[todayKey()] = d;
+  updateRing(d.protein);
+  renderFoodLog();
+  document.getElementById('aiWrap').innerHTML = '';
+  document.getElementById('foodInput').value = '';
+  await saveToSheet(d);
+  toast('+' + protein + 'g logged');
+}
+
+function selW(type, el) {
+  selWorkout = type;
+  document.querySelectorAll('#wPills .wpill').forEach(p => p.className = 'wpill');
+  el.classList.add('sel-' + type.toLowerCase());
+}
+function selE(val, el) {
+  selEnergy = val;
+  document.querySelectorAll('#eBtns .sq-btn').forEach((b, i) => { b.className = 'sq-btn'; if (i+1===val) b.classList.add('sel-e'); });
+}
+function selD(val, el) {
+  selDrinks = val;
+  document.querySelectorAll('#dBtns .sq-btn').forEach(b => b.className = 'sq-btn');
+  el.classList.add(val === 0 ? 'sel-d0' : 'sel-d');
+}
+
+async function saveDay() {
+  const wt = parseFloat(document.getElementById('fWt').value) || null;
+  const notes = document.getElementById('fNotes').value.trim();
+  if (!wt && !selWorkout && selEnergy === null && selDrinks === null && !notes) { toast('Fill in at least one field'); return; }
+  const d = getTodayData();
+  if (wt) d.weight = wt;
+  if (selWorkout) d.workout = selWorkout;
+  if (selEnergy !== null) d.energy = selEnergy;
+  if (selDrinks !== null) d.drinks = selDrinks;
+  if (notes) d.notes = notes;
+  allLogs[todayKey()] = d;
+  renderSnap(d);
+  document.getElementById('fWt').value = '';
+  document.getElementById('fNotes').value = '';
+  selWorkout = null; selEnergy = null; selDrinks = null;
+  document.querySelectorAll('#wPills .wpill').forEach(p => p.className = 'wpill');
+  document.querySelectorAll('#eBtns .sq-btn').forEach(b => b.className = 'sq-btn');
+  document.querySelectorAll('#dBtns .sq-btn').forEach(b => b.className = 'sq-btn');
+  document.getElementById('saveHint').textContent = 'Saved ' + new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  toast('Saved ✓');
+  await saveToSheet(d);
+}
+
+function renderSnap(d) {
+  const wrap = document.getElementById('snapWrap');
+  const parts = [];
+  if (d.weight) parts.push('⚖ ' + d.weight + ' lbs');
+  if (d.workout) parts.push('🏋 ' + d.workout);
+  if (d.energy) parts.push('⚡ Energy ' + d.energy + '/5');
+  if (d.drinks !== null && d.drinks !== undefined) parts.push('🍺 Drinks: ' + (d.drinks === 3 ? '3+' : d.drinks));
+  if (d.protein > 0) parts.push('🥩 Protein: ' + Math.round(d.protein) + 'g');
+  if (d.calories > 0) parts.push('🔥 Calories: ~' + Math.round(d.calories) + ' kcal');
+  if (d.notes) parts.push('📝 ' + d.notes);
+  if (parts.length) {
+    wrap.innerHTML = '<div class="slabel">Saved Today</div><div class="snap-box">' + parts.join('<br>') + '</div>';
+  } else { wrap.innerHTML = ''; }
+}
+
+function renderHistory() {
+  const keys = Object.keys(allLogs).sort().reverse();
+  if (!keys.length) {
+    document.getElementById('sumGrid').innerHTML = '';
+    document.getElementById('histList').innerHTML = '<div class="empty">No entries yet.<br>Start logging today.</div>';
+    document.getElementById('weeklySummary').textContent = 'No data yet.';
+    return;
+  }
+
+  const last7 = keys.slice(0, 7).map(k => allLogs[k]);
+  const avg = arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null;
+  const weights = last7.filter(d=>d.weight).map(d=>d.weight);
+  const proteins = last7.filter(d=>d.protein>0).map(d=>d.protein);
+  const energies = last7.filter(d=>d.energy).map(d=>d.energy);
+  const drinkArr = last7.filter(d=>d.drinks!==null&&d.drinks!==undefined).map(d=>d.drinks===3?3:d.drinks);
+  const tonal = last7.filter(d=>d.workout==='Tonal'||d.workout==='Both').length;
+  const pelo = last7.filter(d=>d.workout==='Peloton'||d.workout==='Both').length;
+  const avgP = avg(proteins);
+  const pc = avgP>=175?'var(--accent)':avgP>=140?'var(--blue)':'var(--orange)';
+
+  document.getElementById('sumGrid').innerHTML = `
+    <div class="sum-card"><div class="sc-lbl">Avg Weight</div><div class="sc-val">${avg(weights)?avg(weights).toFixed(1):'—'}</div><div class="sc-unit">lbs</div></div>
+    <div class="sum-card"><div class="sc-lbl">Avg Protein</div><div class="sc-val" style="color:${pc}">${avgP?Math.round(avgP):'—'}</div><div class="sc-unit">g / day</div></div>
+    <div class="sum-card"><div class="sc-lbl">Avg Energy</div><div class="sc-val" style="color:var(--orange)">${avg(energies)?avg(energies).toFixed(1):'—'}</div><div class="sc-unit">out of 5</div></div>
+    <div class="sum-card"><div class="sc-lbl">Tonal Days</div><div class="sc-val" style="color:var(--accent)">${tonal}</div><div class="sc-unit">this week</div></div>`;
+
+  // Weight chart
+  const last30 = keys.slice(0, 30).reverse().map(k => allLogs[k]).filter(d => d.weight);
+  if (last30.length >= 2) {
+    const wts = last30.map(d => d.weight);
+    const minW = Math.min(...wts) - 1;
+    const maxW = Math.max(...wts) + 1;
+    const pts = wts.map((w, i) => {
+      const x = (i / (wts.length - 1)) * 400;
+      const y = 80 - ((w - minW) / (maxW - minW)) * 70;
+      return x + ',' + y;
+    }).join(' ');
+    document.getElementById('weightChart').innerHTML = `
+      <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
+      <text x="0" y="78" fill="var(--muted)" font-size="8" font-family="monospace">${minW.toFixed(1)}</text>
+      <text x="0" y="10" fill="var(--muted)" font-size="8" font-family="monospace">${maxW.toFixed(1)}</text>`;
+  } else {
+    document.getElementById('weightChart').innerHTML = '<text x="160" y="40" fill="var(--muted)" font-size="10" font-family="monospace" text-anchor="middle">Log weight daily to see trend</text>';
+  }
+
+  // Weekly summary
+  const wkStart = keys.length > 0 ? keys[Math.min(keys.length-1, 6)] : todayKey();
+  const wkEnd = keys[0];
+  const avgD = avg(drinkArr);
+  const summaryText = `WEEKLY TRACKER SUMMARY
+Week: ${wkStart} → ${wkEnd}
+━━━━━━━━━━━━━━━━━━━━
+Avg weight:      ${avg(weights)?avg(weights).toFixed(1)+' lbs':'no data'}
+Avg protein:     ${avgP?Math.round(avgP)+'g/day':'no data'}
+Avg energy:      ${avg(energies)?avg(energies).toFixed(1)+'/5':'no data'}
+Avg drinks/night:${avgD!==null?avgD.toFixed(1):'no data'}
+Tonal days:      ${tonal}
+Peloton days:    ${pelo}
+Days logged:     ${Math.min(keys.length, 7)}
+━━━━━━━━━━━━━━━━━━━━
+(Paste this + Whoop/Tonal screenshots for weekly analysis)`;
+  document.getElementById('weeklySummary').textContent = summaryText;
+
+  // History list
+  document.getElementById('histList').innerHTML = keys.map(k => {
+    const d = allLogs[k]; const p = d.protein || 0;
+    const pc2 = p>=175?'var(--accent)':p>=140?'var(--blue)':'var(--orange)';
+    return `<div class="hist-entry">
+      <div class="hist-date">${k}${d.workout?' · '+d.workout:''}</div>
+      <div class="hist-stats">
+        ${d.weight?`<div class="hist-stat">⚖ <span class="hv">${d.weight}</span> lbs</div>`:''}
+        ${p>0?`<div class="hist-stat">🥩 <span class="hv" style="color:${pc2}">${Math.round(p)}g</span></div>`:''}
+        ${d.calories>0?`<div class="hist-stat">🔥 <span class="hv">~${Math.round(d.calories)}</span> kcal</div>`:''}
+        ${d.energy?`<div class="hist-stat">⚡ <span class="hv">${d.energy}/5</span></div>`:''}
+        ${d.drinks!==null&&d.drinks!==undefined?`<div class="hist-stat">🍺 <span class="hv" style="color:${d.drinks>=2?'var(--purple)':'var(--muted)'}">${d.drinks===3?'3+':d.drinks}</span></div>`:''}
+      </div>
+      ${d.notes?`<div class="hist-notes">${d.notes}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+async function copySummary() {
+  const txt = document.getElementById('weeklySummary').textContent;
+  try { await navigator.clipboard.writeText(txt); toast('Copied — paste into chat'); }
+  catch { toast('Select and copy the text manually'); }
+}
+
+function sw(name, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('view-' + name).classList.add('active');
+  if (name === 'history') renderHistory();
+  if (name === 'protein') { updateRing(getTodayData().protein); renderFoodLog(); }
+  if (name === 'daily') renderSnap(getTodayData());
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+document.getElementById('foodInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); analyzeFood(); }
+});
+
+// BOOT
+async function init() {
+  await loadAllData();
+  const d = getTodayData();
+  updateRing(d.protein);
+  renderFoodLog();
+}
+init();
+</script>
+</body>
+</html>
