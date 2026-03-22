@@ -541,13 +541,26 @@ function saveCustomAdds(arr) { localStorage.setItem(CUSTOM_KEY, JSON.stringify(a
 function renderQuickAdds() {
   const customs = getCustomAdds();
   const all = [...DEFAULT_QUICKADDS, ...customs];
-  document.getElementById('quickAddRow').innerHTML = all.map((q, i) => {
+  const row = document.getElementById('quickAddRow');
+  row.innerHTML = '';
+  all.forEach((q, i) => {
     const isCustom = i >= DEFAULT_QUICKADDS.length;
-    return `<div class="qpill" onclick="qadd('${q.name}',${q.protein},${q.calories})">
-      ${q.name}
-      ${isCustom ? `<button class="del-q" onclick="event.stopPropagation();deleteCustom(${i - DEFAULT_QUICKADDS.length})">×</button>` : ''}
-    </div>`;
-  }).join('');
+    const btn = document.createElement('div');
+    btn.className = 'qpill';
+    btn.textContent = q.name;
+    btn.addEventListener('click', () => qadd(q.name, q.protein, q.calories));
+    if (isCustom) {
+      const del = document.createElement('button');
+      del.className = 'del-q';
+      del.textContent = '×';
+      del.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteCustom(i - DEFAULT_QUICKADDS.length);
+      });
+      btn.appendChild(del);
+    }
+    row.appendChild(btn);
+  });
 }
 
 function deleteCustom(i) {
